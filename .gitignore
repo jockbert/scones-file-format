@@ -1,0 +1,7 @@
+.cache-tests
+.classpath
+.gradle/
+.project
+.settings
+build/
+bin/
