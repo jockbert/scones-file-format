@@ -3,6 +3,7 @@ package se.mjukomp.scones
 import scala.annotation.tailrec
 
 object Scone {
+  import scala.language.implicitConversions
   def group(scones: Scone*) = Group(scones.toList)
   implicit def leaf(data: String) = Leaf(data)
 }
