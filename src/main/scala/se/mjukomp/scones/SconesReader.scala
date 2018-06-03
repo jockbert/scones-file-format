@@ -24,39 +24,38 @@ case class SconesReader() {
   type Scones = List[Scone]
 
   @tailrec
-  private def parseData(
+  private def parseLeaf(
     in:     In,
-    result: String = ""): (In, String) =
+    result: String = ""): (In, Leaf) =
     in match {
-      case Stream.Empty => (in, result)
-      case ' ' #:: tail => (in, result)
-      case ')' #:: tail => (in, result)
-      case c #:: tail   => parseData(tail, result + c)
+      case Stream.Empty => (in, Leaf(result))
+      case ' ' #:: tail => (in, Leaf(result))
+      case ')' #:: tail => (in, Leaf(result))
+      case c #:: tail   => parseLeaf(tail, result + c)
     }
 
-  private def breakTailrecParseList(in: In): (In, Scones) =
+  private def breakTailrecParseList(in: In): (In, Group) =
     parseList(in)
 
   @tailrec
   private def parseList(
     in:     In,
-    result: Scones = Nil): (In, Scones) =
+    result: Scones = Nil): (In, Group) =
     in match {
-      case Stream.Empty => (in, result)
+      case Stream.Empty => (in, Group(result.reverse))
+      case ')' #:: tail => (tail, Group(result.reverse))
       case ' ' #:: tail => parseList(tail, result)
-      case ')' #:: tail => (tail, result)
       case '(' #:: tail => {
         val (in2, group) = breakTailrecParseList(tail)
-        parseList(in2, Group(group.reverse) :: result)
+        parseList(in2, group :: result)
       }
       case _ => {
-        val (in2, data) = parseData(in)
-        parseList(in2, Leaf(data) :: result)
+        val (in2, leaf) = parseLeaf(in)
+        parseList(in2, leaf :: result)
       }
     }
 
-  private def parse(in: In): Scone =
-    Group(parseList(in)._2.reverse)
+  private def parse(in: In): Scone = parseList(in)._2
 
   def read(in: In): Scone = parse(in)
 
