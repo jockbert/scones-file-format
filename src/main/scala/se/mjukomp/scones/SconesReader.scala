@@ -15,7 +15,7 @@ case class Group(children: List[Scone] = Nil) extends Scone {
     children.mkString("(", " ", ")")
 }
 case class Leaf(data: String) extends Scone {
-  override def toString(): String = data
+  override def toString(): String = "\"" + data + "\""
 }
 
 case class SconesReader() {
@@ -35,6 +35,17 @@ case class SconesReader() {
       case c #:: tail   => parseLeaf(tail, result + c)
     }
 
+  @tailrec
+  private def parseQuoteLeaf(
+    in:     In,
+    result: String = ""): (In, Leaf) =
+    in match {
+      case Stream.Empty          => (in, Leaf(result)) // TODO error handling
+      case '"' #:: tail          => (tail, Leaf(result))
+      case '\\' #:: '"' #:: tail => parseQuoteLeaf(tail, result + '"')
+      case c #:: tail            => parseQuoteLeaf(tail, result + c)
+    }
+
   private def breakTailrecParseList(in: In): (In, Group) =
     parseList(in)
 
@@ -49,6 +60,10 @@ case class SconesReader() {
       case '(' #:: tail => {
         val (in2, group) = breakTailrecParseList(tail)
         parseList(in2, group :: result)
+      }
+      case '"' #:: tail => {
+        val (in2, leaf) = parseQuoteLeaf(tail)
+        parseList(in2, leaf :: result)
       }
       case _ => {
         val (in2, leaf) = parseLeaf(in)

@@ -16,11 +16,20 @@ object ReaderProps extends Properties("SconesReader") {
     read("one_element") ?=
     group("one_element")
 
-  property("Some flat data") = reader.
+  property("Flat data") = reader.
     read("some flat data") ?=
     group("some", "flat", "data")
 
-  property("Some nested data") = reader.
+  property("Nested data") = reader.
     read("some (nested (data foo) bar) baz)") ?=
     group("some", group("nested", group("data", "foo"), "bar"), "baz")
+
+  property("Quote data") = reader.
+    read("some \"quote data\" foo") ?=
+    group("some", "quote data", "foo")
+
+  property("Escaped quote in data") = reader.
+    read("some \"quote \\\"data\\\"\" foo") ?=
+    group("some", "quote \"data\"", "foo")
+
 }
