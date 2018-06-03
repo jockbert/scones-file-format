@@ -10,11 +10,17 @@ object ReaderProps extends Properties("SconesReader") {
   val reader = SconesReader()
 
   property("Empty data") = reader.
-    read("") ?= Parent()
+    read("") ?= Group()
 
   property("One element") = reader.
-    read("one_element") ?= p(l("one_element"))
+    read("one_element") ?=
+    group("one_element")
 
   property("Some flat data") = reader.
-    read("some flat data") ?= p(l("some"), l("flat"), l("data"))
+    read("some flat data") ?=
+    group("some", "flat", "data")
+
+  property("Some nested data") = reader.
+    read("some (nested (data foo) bar) baz)") ?=
+    group("some", group("nested", group("data", "foo"), "bar"), "baz")
 }

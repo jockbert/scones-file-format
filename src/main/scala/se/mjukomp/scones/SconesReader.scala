@@ -3,14 +3,19 @@ package se.mjukomp.scones
 import scala.annotation.tailrec
 
 object Scone {
-  def p(scones: Scone*) = Parent(scones.toList)
-  def l(data: String) = Leaf(data)
+  def group(scones: Scone*) = Group(scones.toList)
+  implicit def leaf(data: String) = Leaf(data)
 }
 
 sealed trait Scone {}
 
-case class Parent(children: List[Scone] = Nil) extends Scone
-case class Leaf(data: String) extends Scone
+case class Group(children: List[Scone] = Nil) extends Scone {
+  override def toString(): String =
+    children.mkString("(", " ", ")")
+}
+case class Leaf(data: String) extends Scone {
+  override def toString(): String = data
+}
 
 case class SconesReader() {
   import Scone._
@@ -25,8 +30,12 @@ case class SconesReader() {
     in match {
       case Stream.Empty => (in, result)
       case ' ' #:: tail => (in, result)
+      case ')' #:: tail => (in, result)
       case c #:: tail   => parseData(tail, result + c)
     }
+
+  private def breakTailrecParseList(in: In): (In, Scones) =
+    parseList(in)
 
   @tailrec
   private def parseList(
@@ -35,6 +44,11 @@ case class SconesReader() {
     in match {
       case Stream.Empty => (in, result)
       case ' ' #:: tail => parseList(tail, result)
+      case ')' #:: tail => (tail, result)
+      case '(' #:: tail => {
+        val (in2, group) = breakTailrecParseList(tail)
+        parseList(in2, Group(group.reverse) :: result)
+      }
       case _ => {
         val (in2, data) = parseData(in)
         parseList(in2, Leaf(data) :: result)
@@ -42,7 +56,7 @@ case class SconesReader() {
     }
 
   private def parse(in: In): Scone =
-    Parent(parseList(in)._2.reverse)
+    Group(parseList(in)._2.reverse)
 
   def read(in: In): Scone = parse(in)
 
