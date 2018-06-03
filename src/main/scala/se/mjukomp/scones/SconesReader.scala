@@ -24,15 +24,24 @@ case class SconesReader() {
   type In = Stream[Char]
   type Scones = List[Scone]
 
+  private def isWhitespace(c: Char): Boolean =
+    c == ' ' || c == '\n' || c == '\t' || c == '\r'
+
+  @tailrec
+  private def trim(in: In): In =
+    if (in.isEmpty) in
+    else if (!isWhitespace(in.head)) in
+    else trim(in.tail)
+
   @tailrec
   private def parseLeaf(
     in:     In,
     result: String = ""): (In, Leaf) =
     in match {
-      case Stream.Empty => (in, Leaf(result))
-      case ' ' #:: tail => (in, Leaf(result))
-      case ')' #:: tail => (in, Leaf(result))
-      case c #:: tail   => parseLeaf(tail, result + c)
+      case Stream.Empty                  => (in, Leaf(result))
+      case c #:: tail if isWhitespace(c) => (in, Leaf(result))
+      case ')' #:: tail                  => (in, Leaf(result))
+      case c #:: tail                    => parseLeaf(tail, result + c)
     }
 
   @tailrec
@@ -54,9 +63,9 @@ case class SconesReader() {
     in:     In,
     result: Scones = Nil): (In, Group) =
     in match {
-      case Stream.Empty => (in, Group(result.reverse))
-      case ')' #:: tail => (tail, Group(result.reverse))
-      case ' ' #:: tail => parseList(tail, result)
+      case Stream.Empty                  => (in, Group(result.reverse))
+      case ')' #:: tail                  => (tail, Group(result.reverse))
+      case c #:: tail if isWhitespace(c) => parseList(trim(tail), result)
       case '(' #:: tail => {
         val (in2, group) = breakTailrecParseList(tail)
         parseList(in2, group :: result)

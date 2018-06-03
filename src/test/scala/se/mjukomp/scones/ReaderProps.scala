@@ -32,4 +32,12 @@ object ReaderProps extends Properties("SconesReader") {
     read("some \"quote \\\"data\\\"\" foo") ?=
     group("some", "quote \"data\"", "foo")
 
+  property("Padding") = reader.
+    read("  some  (  padding  )  used  ") ?=
+    group("some", group("padding"), "used")
+
+  property("Whitespace") = reader.
+    read("\r\n\tsome\r\n\t(\n\n\n\" \r\n\twhitespace\r\n\t \"\r\r\r)\n\t\t\t\tused\n\r\t") ?=
+    group("some", group(" \r\n\twhitespace\r\n\t "), "used")
+
 }
