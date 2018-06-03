@@ -11,14 +11,14 @@ repositories {
 }
 
 dependencies {
-    compile 'org.scala-lang:scala-library:2.12.4'
+    compile 'org.scala-lang:scala-library:2.12.6'
     compile 'org.scalacheck:scalacheck_2.12:1.14.0'
 	testCompile 'junit:junit:4.+'
 }
 
 tasks.withType(ScalaCompile) {
     configure(scalaCompileOptions.forkOptions) {
-        memoryMaximumSize = '1g'
+        memoryMaximumSize = '2g'
     }
 }
 
