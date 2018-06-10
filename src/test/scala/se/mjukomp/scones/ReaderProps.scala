@@ -65,6 +65,11 @@ object ReaderProps extends Properties("SconesReader") {
       "missing (right parenthesis",
       ReadError("Missing ')'", Position(1, 26)))
 
+  property("Missing right quote") =
+    readError(
+      "missing \"right quote",
+      ReadError("Missing closing quote '\"'", Position(1, 20)))
+
   def readSuccess(input: String, expected: Scone) =
     reader.read(input) ?= Right(expected)
 

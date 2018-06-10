@@ -59,7 +59,7 @@ case class SconesReader() {
     ctx:    Ctx,
     result: String = ""): (Ctx, Scone) =
     ctx.in match {
-      case Stream.Empty               => (ctx, Leaf(result)) // TODO error handling
+      case Stream.Empty               => (ctx, Leaf(result))
       case c #:: _ if isWhitespace(c) => (ctx, Leaf(result))
       case ')' #:: _                  => (ctx, Leaf(result))
       case c #:: _                    => parseLeaf(ctx.dropChar(), result + c)
@@ -68,10 +68,10 @@ case class SconesReader() {
   @tailrec
   private def parseQuoteLeaf(
     ctx:    Ctx,
-    result: String = ""): (Ctx, Scone) =
+    result: String = ""): (Ctx, Result) =
     ctx.in match {
-      case Stream.Empty          => (ctx, Leaf(result)) // TODO error handling
-      case '"' #:: tail          => (ctx.dropChar(), Leaf(result))
+      case Stream.Empty          => (ctx, ctx.error("Missing closing quote '\"'"))
+      case '"' #:: tail          => (ctx.dropChar(), Right(Leaf(result)))
       case '\\' #:: '"' #:: tail => parseQuoteLeaf(ctx.dropChar(2), result + '"')
       case c #:: tail            => parseQuoteLeaf(ctx.dropChar(), result + c)
     }
@@ -92,8 +92,11 @@ case class SconesReader() {
           parseList(ctx2, (group.right.get) :: result)
       }
       case '"' #:: _ => {
-        val (ctx2, leaf) = parseQuoteLeaf(ctx.dropChar())
-        parseList(ctx2, leaf :: result)
+        val (ctx2, res2) = parseQuoteLeaf(ctx.dropChar())
+        if (res2.isLeft)
+          (ctx2, res2)
+        else
+          parseList(ctx2, res2.right.get :: result)
       }
       case _ => {
         val (ctx2, leaf) = parseLeaf(ctx)
