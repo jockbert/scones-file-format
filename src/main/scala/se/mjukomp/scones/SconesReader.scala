@@ -37,6 +37,12 @@ case class Ctx(in: In, line: Int = 1, column: Int = 0) {
       Ctx(in.tail, line + 1, 1).dropChar(charsToDrop - 1)
     else
       Ctx(in.tail, line, column + 1).dropChar(charsToDrop - 1)
+
+  def error(message: String) = Left(ReadError(
+    message,
+    this.line,
+    this.column,
+    this.in.mkString("")))
 }
 
 case class SconesReader() {
@@ -75,14 +81,17 @@ case class SconesReader() {
   @tailrec
   private def parseList(
     ctx:    Ctx,
-    result: Scones = Nil): (Ctx, Scone) =
+    result: Scones = Nil): (Ctx, Result) =
     ctx.in match {
-      case Stream.Empty               => (ctx, Group(result.reverse))
-      case ')' #:: _                  => (ctx, Group(result.reverse))
+      case Stream.Empty               => (ctx, Right(Group(result.reverse)))
+      case ')' #:: _                  => (ctx, Right(Group(result.reverse)))
       case c #:: _ if isWhitespace(c) => parseList(trim(ctx), result)
       case '(' #:: _ => {
         val (ctx2, group) = parseParenthesis(ctx)
-        parseList(ctx2, group :: result)
+        if (group.isLeft)
+          (ctx2, group)
+        else
+          parseList(ctx2, (group.right.get) :: result)
       }
       case '"' #:: _ => {
         val (ctx2, leaf) = parseQuoteLeaf(ctx.dropChar())
@@ -95,35 +104,32 @@ case class SconesReader() {
     }
 
   private def parseParenthesis(
-    ctx: Ctx): (Ctx, Scone) =
+    ctx: Ctx): (Ctx, Result) =
     ctx.in match {
       case '(' #:: _ => {
         val (ctx2, result) = parseList(ctx.dropChar())
-        parseRightParenthesis(ctx2, result)
+        if (result.isLeft)
+          (ctx2, result)
+        else
+          parseRightParenthesis(ctx2, result.right.get)
       }
-      case _ => (ctx, Leaf("ERROR EXPECTING LEFT PARENTHESIS")) // TODO error handling
+      case _ => (ctx, ctx.error("Missing '('"))
     }
 
   private def parseRightParenthesis(
     ctx:    Ctx,
-    result: Scone): (Ctx, Scone) =
+    result: Scone): (Ctx, Result) =
     ctx.in match {
-      case ')' #:: _ => (ctx.dropChar(), result)
-      case _         => (ctx, Leaf("ERROR EXPECTING RIGHT PARENTHESIS")) // TODO error handling
+      case ')' #:: _ => (ctx.dropChar(), Right(result))
+      case _         => (ctx, ctx.error("Missing ')'"))
     }
 
   private def parse(in: In): Result = {
     val (ctx2, result) = parseList(Ctx(in))
 
     ctx2.in match {
-      case Stream.Empty =>
-        Right(parseList(Ctx(in))._2)
-      case _ =>
-        Left(ReadError(
-          "Missing '('",
-          ctx2.line,
-          ctx2.column,
-          ctx2.in.mkString("")))
+      case Stream.Empty => result
+      case _            => ctx2.error("Missing '('")
     }
   }
 
