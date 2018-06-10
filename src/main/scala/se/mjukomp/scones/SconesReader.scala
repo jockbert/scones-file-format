@@ -22,27 +22,25 @@ case class Leaf(data: String) extends Scone {
   override def toString(): String = "\"" + data + "\""
 }
 
+case class Position(line: Int = 1, column: Int = 0) {
+  def moveRight() = Position(line, column + 1)
+  def moveNewLine() = Position(line + 1, column)
+  def move(newLine: Boolean) =
+    if (newLine) moveNewLine() else moveRight()
+}
+
 case class ReadError(
-  message: String,
-  line:    Int,
-  column:  Int,
-  before:  String)
+  message:  String,
+  position: Position)
 
 /** Parse context */
-case class Ctx(in: In, line: Int = 1, column: Int = 0) {
+case class Ctx(in: In, pos: Position = Position()) {
   def dropChar(charsToDrop: Int = 1): Ctx =
-    if (charsToDrop <= 0)
-      this
-    else if (in.head == '\n')
-      Ctx(in.tail, line + 1, 1).dropChar(charsToDrop - 1)
-    else
-      Ctx(in.tail, line, column + 1).dropChar(charsToDrop - 1)
+    if (charsToDrop <= 0) this
+    else Ctx(in.tail, pos.move(in.head == '\n')).dropChar(charsToDrop - 1)
 
-  def error(message: String) = Left(ReadError(
-    message,
-    this.line,
-    this.column,
-    this.in.mkString("")))
+  def error(message: String) =
+    Left(ReadError(message, pos))
 }
 
 case class SconesReader() {
