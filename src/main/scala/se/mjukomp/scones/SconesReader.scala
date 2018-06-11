@@ -6,9 +6,18 @@ object Scone {
   import scala.language.implicitConversions
   def group(scones: Scone*) = Group(scones.toList)
   implicit def leaf(data: String) = Leaf(data)
+
   type In = Stream[Char]
   type Scones = List[Scone]
   type Result = Either[ReadError, Scone]
+  type EmptyCtx = Ctx[Unit]
+  type ResultCtx = Ctx[Result]
+  type StringCtx = Ctx[String]
+  type SconeCtx = Ctx[Scone]
+  type SconeListCtx = Ctx[List[Scone]]
+
+  def isWhitespace(c: Char): Boolean =
+    c == ' ' || c == '\n' || c == '\t' || c == '\r'
 }
 import Scone._
 
@@ -33,103 +42,107 @@ case class ReadError(
   message:  String,
   position: Position)
 
-/** Parse context */
-case class Ctx(in: In, pos: Position = Position()) {
-  def dropChar(charsToDrop: Int = 1): Ctx =
+/** ParseContext */
+case class Ctx[R](in: In, pos: Position = Position(), result: R) {
+
+  def dropChar(charsToDrop: Int = 1): Ctx[R] =
     if (charsToDrop <= 0) this
-    else Ctx(in.tail, pos.move(in.head == '\n')).dropChar(charsToDrop - 1)
+    else Ctx(in.tail, pos.move(in.head == '\n'), result)
+      .dropChar(charsToDrop - 1)
+
+  def withResult[S](s: S) = Ctx[S](in, pos, s)
 
   def error(message: String) =
     Left(ReadError(message, pos))
+
+  def trim(): Ctx[R] =
+    if (in.isEmpty) this
+    else if (!isWhitespace(in.head)) this
+    else dropChar().trim()
+
+  def map[Q](fn: R => Q): Ctx[Q] =
+    Ctx[Q](in, pos, fn(result))
+
+  def noResult: EmptyCtx = withResult(Unit)
 }
 
 case class SconesReader() {
 
-  private def isWhitespace(c: Char): Boolean =
-    c == ' ' || c == '\n' || c == '\t' || c == '\r'
+  private def parseLeaf(ctx: EmptyCtx): SconeCtx =
+    parseLeaf2(ctx.withResult(""))
 
   @tailrec
-  private def trim(ctx: Ctx): Ctx =
-    if (ctx.in.isEmpty) ctx
-    else if (!isWhitespace(ctx.in.head)) ctx
-    else trim(ctx.dropChar())
-
-  @tailrec
-  private def parseLeaf(
-    ctx:    Ctx,
-    result: String = ""): (Ctx, Scone) =
+  private def parseLeaf2(ctx: StringCtx): SconeCtx =
     ctx.in match {
-      case Stream.Empty               => (ctx, Leaf(result))
-      case c #:: _ if isWhitespace(c) => (ctx, Leaf(result))
-      case ')' #:: _                  => (ctx, Leaf(result))
-      case c #:: _                    => parseLeaf(ctx.dropChar(), result + c)
+      case Stream.Empty               => ctx.map(Leaf(_))
+      case c #:: _ if isWhitespace(c) => ctx.map(Leaf(_))
+      case ')' #:: _                  => ctx.map(Leaf(_))
+      case c #:: _                    => parseLeaf2(ctx.dropChar().map(_ + c))
     }
 
-  @tailrec
-  private def parseQuoteLeaf(
-    ctx:    Ctx,
-    result: String = ""): (Ctx, Result) =
-    ctx.in match {
-      case Stream.Empty          => (ctx, ctx.error("Missing closing quote '\"'"))
-      case '"' #:: tail          => (ctx.dropChar(), Right(Leaf(result)))
-      case '\\' #:: '"' #:: tail => parseQuoteLeaf(ctx.dropChar(2), result + '"')
-      case c #:: tail            => parseQuoteLeaf(ctx.dropChar(), result + c)
-    }
+  private def parseQuoteLeaf(ctx: EmptyCtx): ResultCtx =
+    parseQuoteLeaf2(ctx.withResult(""))
 
   @tailrec
-  private def parseList(
-    ctx:    Ctx,
-    result: Scones = Nil): (Ctx, Result) =
+  private def parseQuoteLeaf2(ctx: StringCtx): ResultCtx =
     ctx.in match {
-      case Stream.Empty               => (ctx, Right(Group(result.reverse)))
-      case ')' #:: _                  => (ctx, Right(Group(result.reverse)))
-      case c #:: _ if isWhitespace(c) => parseList(trim(ctx), result)
+      case Stream.Empty          => ctx.withResult(ctx.error("Missing closing quote '\"'"))
+      case '"' #:: tail          => ctx.dropChar().map(result => Right(Leaf(result)))
+      case '\\' #:: '"' #:: tail => parseQuoteLeaf2(ctx.dropChar(2).map(_ + '"'))
+      case c #:: tail            => parseQuoteLeaf2(ctx.dropChar().map(_ + c))
+    }
+
+  private def parseList(ctx: EmptyCtx): ResultCtx =
+    parseList2(ctx.withResult[List[Scone]](Nil))
+
+  @tailrec
+  private def parseList2(ctx: SconeListCtx): ResultCtx =
+    ctx.in match {
+      case Stream.Empty               => ctx.map(result => Right(Group(result.reverse)))
+      case ')' #:: _                  => ctx.map(result => Right(Group(result.reverse)))
+      case c #:: _ if isWhitespace(c) => parseList2(ctx.trim())
       case '(' #:: _ => {
-        val (ctx2, group) = parseParenthesis(ctx)
-        if (group.isLeft)
-          (ctx2, group)
+        val ctx2 = parseParenthesis(ctx.noResult)
+        if (ctx2.result.isLeft)
+          ctx2
         else
-          parseList(ctx2, (group.right.get) :: result)
+          parseList2(ctx2.map(res2 => res2.right.get :: ctx.result))
       }
       case '"' #:: _ => {
-        val (ctx2, res2) = parseQuoteLeaf(ctx.dropChar())
-        if (res2.isLeft)
-          (ctx2, res2)
-        else
-          parseList(ctx2, res2.right.get :: result)
+        val ctx2 = parseQuoteLeaf(ctx.dropChar().noResult)
+        if (ctx2.result.isLeft) ctx2
+        else parseList2(ctx2.map(res2 => res2.right.get :: ctx.result))
       }
       case _ => {
-        val (ctx2, leaf) = parseLeaf(ctx)
-        parseList(ctx2, leaf :: result)
+        val ctx2 = parseLeaf(ctx.noResult)
+        parseList2(ctx2.map(_ :: ctx.result))
       }
     }
 
   private def parseParenthesis(
-    ctx: Ctx): (Ctx, Result) =
+    ctx: EmptyCtx): ResultCtx =
     ctx.in match {
       case '(' #:: _ => {
-        val (ctx2, result) = parseList(ctx.dropChar())
-        if (result.isLeft)
-          (ctx2, result)
-        else
-          parseRightParenthesis(ctx2, result.right.get)
+        val ctx2: ResultCtx = parseList(ctx.dropChar().noResult)
+        if (ctx2.result.isLeft) ctx2
+        else parseRightParenthesis(ctx2)
       }
-      case _ => (ctx, ctx.error("Missing '('"))
+      case _ => ctx.withResult(ctx.error("Missing '('"))
     }
 
   private def parseRightParenthesis(
-    ctx:    Ctx,
-    result: Scone): (Ctx, Result) =
+    ctx: ResultCtx): ResultCtx =
     ctx.in match {
-      case ')' #:: _ => (ctx.dropChar(), Right(result))
-      case _         => (ctx, ctx.error("Missing ')'"))
+      case ')' #:: _ => ctx.dropChar()
+      case _         => ctx.withResult(ctx.error("Missing ')'"))
     }
 
   private def parse(in: In): Result = {
-    val (ctx2, result) = parseList(Ctx(in))
+    val startContext: EmptyCtx = Ctx(in, Position(), ())
+    val ctx2 = parseList(startContext)
 
     ctx2.in match {
-      case Stream.Empty => result
+      case Stream.Empty => ctx2.result
       case _            => ctx2.error("Missing '('")
     }
   }
