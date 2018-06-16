@@ -15,10 +15,10 @@ object WriterProps extends Properties("SconesWriter") {
   property("EmptyData") =
     write() ?= "\n"
 
-  property("OneElement") =
-    write(Leaf("OneElement")) ?= "OneElement\n"
+  property("OneLeaf") =
+    write(Leaf("OneLeaf")) ?= "OneLeaf\n"
 
-  property("TwoElements") =
+  property("TwoLeafs") =
     write(Leaf("One"), Leaf("Two")) ?=
       """|One
          |Two
