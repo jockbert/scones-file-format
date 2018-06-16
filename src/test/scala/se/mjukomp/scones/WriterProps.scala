@@ -9,9 +9,17 @@ object WriterProps extends Properties("SconesWriter") {
   val writer = SconesWriter()
 
   property("EmptyData") =
-    writer.write(Nil) ?= Stream.empty[Char]
+    write() ?= "\n"
 
   property("OneElement") =
-    writer.write(Leaf("OneElement") :: Nil) ?= "OneElement".toStream
+    write(Leaf("OneElement")) ?= "OneElement\n"
 
+  property("TwoElements") =
+    write(Leaf("One"), Leaf("Two")) ?=
+      """|One
+         |Two
+         |""".stripMargin
+
+  def write(scones: Scone*) =
+    writer.write(scones.toList)
 }
