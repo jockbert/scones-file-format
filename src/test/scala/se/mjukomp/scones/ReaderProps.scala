@@ -11,8 +11,6 @@ object ReaderProps extends Properties("SconesReader") {
 
   val reader = SconesReader()
 
-  // Parenthesis errors )), ((, () with nice error information
-  // Quotes errors - missing end quote
   // print to file
   // roundtrip
   // scheme and scheme validation
@@ -70,9 +68,9 @@ object ReaderProps extends Properties("SconesReader") {
       "missing \"right quote",
       ReadError("Missing closing quote '\"'", Position(1, 20)))
 
-  def readSuccess(input: String, expected: Scone) =
+  def readSuccess(input: String, expected: Scone): Prop =
     reader.read(input) ?= Right(expected)
 
-  def readError(input: String, expectedError: ReadError) =
+  def readError(input: String, expectedError: ReadError): Prop =
     reader.read(input) ?= Left(expectedError)
 }
