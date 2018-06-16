@@ -35,4 +35,12 @@ object WriterProps extends Properties("SconesWriter") {
     write(group()) ?=
       """|()
          |""".stripMargin
+
+  property("NestedGroup") =
+    write(group("Alfa", group("Beta", group("Gamma"), "Delta"))) ?=
+      """|(Alfa
+         |    (Beta
+         |        (Gamma)
+         |        Delta))
+         |""".stripMargin
 }

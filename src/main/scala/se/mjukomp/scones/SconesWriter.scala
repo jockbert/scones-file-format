@@ -7,7 +7,6 @@ case class SconesWriter() {
     indent: Int         = 0): String = {
 
     val padding = "    " * indent
-
     scones.map({
       case Leaf(text) => text
       case Group(sub) => "(" + write(sub, indent + 1).trim() + ")"
