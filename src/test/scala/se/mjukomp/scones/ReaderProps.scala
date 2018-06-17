@@ -11,10 +11,6 @@ object ReaderProps extends Properties("SconesReader") {
 
   val reader = SconesReader()
 
-  // print to file
-  // roundtrip
-  // scheme and scheme validation
-
   property("Empty data") =
     readSuccess("", Group())
 

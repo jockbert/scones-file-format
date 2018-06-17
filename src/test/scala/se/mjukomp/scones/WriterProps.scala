@@ -43,4 +43,25 @@ object WriterProps extends Properties("SconesWriter") {
          |        (Gamma)
          |        Delta))
          |""".stripMargin
+
+  property("QuoteLeftParentesis") =
+    write("NoQuoting", "LeafWith(InIt", "NoQuoting") ?=
+      """|NoQuoting
+         |"LeafWith(InIt"
+         |NoQuoting
+         |""".stripMargin
+
+  property("QuoteRightParentesis") =
+    write("NoQuoting", "LeafWith)InIt", "NoQuoting") ?=
+      """|NoQuoting
+         |"LeafWith)InIt"
+         |NoQuoting
+         |""".stripMargin
+
+  property("EscapeQuoteInQuotes") =
+    write("NoQuoting", "LeafWith)And\"InIt", "NoQuoting") ?=
+      """|NoQuoting
+         |"LeafWith)And\"InIt"
+         |NoQuoting
+         |""".stripMargin
 }
