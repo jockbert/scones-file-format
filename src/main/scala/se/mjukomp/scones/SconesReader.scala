@@ -25,10 +25,10 @@ sealed trait Scone {}
 
 case class Group(children: List[Scone] = Nil) extends Scone {
   override def toString(): String =
-    children.mkString("(", " ", ")")
+    children.mkString("group(", " ", ")")
 }
 case class Leaf(data: String) extends Scone {
-  override def toString(): String = "\"" + data + "\""
+  override def toString(): String = "leaf(" + data + ")"
 }
 
 case class Position(line: Int = 1, column: Int = 0) {
