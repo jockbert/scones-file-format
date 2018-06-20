@@ -88,6 +88,7 @@ case class SconesReader() {
     ctx.in match {
       case Stream.Empty          => ctx.withResult(ctx.error("Missing closing quote '\"'"))
       case '"' #:: tail          => ctx.dropChar().map(result => Right(Leaf(result)))
+      case '\\' #:: '\\' #:: tail => parseQuoteLeaf2(ctx.dropChar(2).map(_ + '\\'))
       case '\\' #:: '"' #:: tail => parseQuoteLeaf2(ctx.dropChar(2).map(_ + '"'))
       case c #:: tail            => parseQuoteLeaf2(ctx.dropChar().map(_ + c))
     }

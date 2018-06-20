@@ -64,6 +64,13 @@ object ReaderProps extends Properties("SconesReader") {
       "missing \"right quote",
       ReadError("Missing closing quote '\"'", Position(1, 20)))
 
+  // --- detected by roundtrip test -------
+
+  property("DoubleBackslashInQuote") =
+    readSuccess(
+      "\"\\\\\"",
+      group("\\"))
+
   def readSuccess(input: String, expected: Scone): Prop =
     reader.read(input) ?= Right(expected)
 

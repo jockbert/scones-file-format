@@ -64,4 +64,23 @@ object WriterProps extends Properties("SconesWriter") {
          |"LeafWith)And\"InIt"
          |NoQuoting
          |""".stripMargin
+
+  // --- Properties below detected by roundtrip test -------
+
+  property("QuoteZeroLengthText") =
+    write("", "", "") ?=
+      """|""
+         |""
+         |""
+         |""".stripMargin
+
+  property("SingleQuote") =
+    write("a\"b") ?=
+      """|"a\"b"
+         |""".stripMargin
+
+  property("TrailingBackSlashInQuote") =
+    write(" \\") ?=
+      """|" \\"
+         |""".stripMargin
 }

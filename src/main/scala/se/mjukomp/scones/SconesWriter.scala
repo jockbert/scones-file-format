@@ -5,11 +5,16 @@ case class SconesWriter() {
   private def escapeQuotes(text: String): String =
     text.replace("\"", "\\\"")
 
+  private def escapeBackslash(text: String): String =
+    text.replace("\\", "\\\\")
+
   private def quoteIfNeeded(text: String): String =
     if (text.contains('(')
       || text.contains(')')
+      || text.isEmpty()
+      || text.contains('"')
       || !text.forall(!Scone.isWhitespace(_)))
-      "\"" + escapeQuotes(text) + "\""
+      "\"" + escapeQuotes(escapeBackslash(text)) + "\""
     else text
 
   def write(
