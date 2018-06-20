@@ -1,4 +1,5 @@
 .cache-tests
+.cache-main
 .classpath
 .gradle/
 .project
