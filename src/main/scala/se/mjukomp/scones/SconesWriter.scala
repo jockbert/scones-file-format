@@ -30,4 +30,7 @@ case class SconesWriter() {
 
   def write(scones: Scone*): String =
     write(scones.toList)
+
+  def write(scone: Scone): String =
+    write(scone :: Nil)
 }
