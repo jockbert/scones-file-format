@@ -23,12 +23,19 @@ import Scone._
 
 sealed trait Scone {}
 
-case class Group(children: List[Scone] = Nil) extends Scone {
+case class Group(
+  children: List[Scone] = Nil)
+  extends Scone {
+
   override def toString(): String =
     children.mkString("group(", " ", ")")
 }
-case class Leaf(data: String) extends Scone {
-  override def toString(): String = "leaf(" + data + ")"
+
+case class Leaf(data: String)
+  extends Scone {
+
+  override def toString(): String =
+    "leaf(" + data + ")"
 }
 
 case class Position(line: Int = 1, column: Int = 0) {
@@ -86,11 +93,11 @@ case class SconesReader() {
   @tailrec
   private def parseQuoteLeaf2(ctx: StringCtx): ResultCtx =
     ctx.in match {
-      case Stream.Empty          => ctx.withResult(ctx.error("Missing closing quote '\"'"))
-      case '"' #:: tail          => ctx.dropChar().map(result => Right(Leaf(result)))
+      case Stream.Empty           => ctx.withResult(ctx.error("Missing closing quote '\"'"))
+      case '"' #:: tail           => ctx.dropChar().map(result => Right(Leaf(result)))
       case '\\' #:: '\\' #:: tail => parseQuoteLeaf2(ctx.dropChar(2).map(_ + '\\'))
-      case '\\' #:: '"' #:: tail => parseQuoteLeaf2(ctx.dropChar(2).map(_ + '"'))
-      case c #:: tail            => parseQuoteLeaf2(ctx.dropChar().map(_ + c))
+      case '\\' #:: '"' #:: tail  => parseQuoteLeaf2(ctx.dropChar(2).map(_ + '"'))
+      case c #:: tail             => parseQuoteLeaf2(ctx.dropChar().map(_ + c))
     }
 
   private def parseList(ctx: EmptyCtx): ResultCtx =
