@@ -41,14 +41,4 @@ object Generators {
             shrink(children).map(Group(_)))
       }
     }
-
-  implicit def shrinkLeaf(): Shrink[Leaf] =
-    Shrink { leaf: Leaf =>
-      for (d <- shrink(leaf.data)) yield Leaf(d)
-    }
-
-  implicit def shrinkGroup(): Shrink[Group] =
-    Shrink { group: Group =>
-      for (c <- shrink(group.children)) yield Group(c)
-    }
 }
