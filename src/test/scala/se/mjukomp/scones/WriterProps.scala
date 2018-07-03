@@ -12,31 +12,31 @@ object WriterProps extends Properties("SconesWriter") {
   def write(scones: Scone*): String =
     writer.write(scones.toList)
 
-  property("EmptyData") =
+  property("Empty data") =
     write() ?= "\n"
 
-  property("OneLeaf") =
+  property("One lLeaf") =
     write(Leaf("OneLeaf")) ?= "OneLeaf\n"
 
-  property("TwoLeafs") =
+  property("Two leafs") =
     write(Leaf("One"), Leaf("Two")) ?=
       """|One
          |Two
          |""".stripMargin
 
-  property("OneGroup") =
+  property("One group") =
     write(group("One", "Two", "Three")) ?=
       """|(One
          |    Two
          |    Three)
          |""".stripMargin
 
-  property("EmptyGroup") =
+  property("Empty group") =
     write(group()) ?=
       """|()
          |""".stripMargin
 
-  property("NestedGroup") =
+  property("Nested groups") =
     write(group("Alfa", group("Beta", group("Gamma"), "Delta"))) ?=
       """|(Alfa
          |    (Beta
@@ -44,24 +44,28 @@ object WriterProps extends Properties("SconesWriter") {
          |        Delta))
          |""".stripMargin
 
-  property("QuoteLeftParentesis") =
+  property("Quote whitespace") =
+    write("NoQuoting", "a\tb", "a\nb", "a\rb", "a b", "NoQuoting") ?=
+      "NoQuoting\n\"a\tb\"\n\"a\nb\"\n\"a\rb\"\n\"a b\"\nNoQuoting\n"
+
+  property("Quote left parentesis") =
     write("NoQuoting", "LeafWith(InIt", "NoQuoting") ?=
       """|NoQuoting
          |"LeafWith(InIt"
          |NoQuoting
          |""".stripMargin
 
-  property("QuoteRightParentesis") =
+  property("Quote right parentesis") =
     write("NoQuoting", "LeafWith)InIt", "NoQuoting") ?=
       """|NoQuoting
          |"LeafWith)InIt"
          |NoQuoting
          |""".stripMargin
 
-  property("EscapeQuoteInQuotes") =
-    write("NoQuoting", "LeafWith)And\"InIt", "NoQuoting") ?=
+  property("Escape quote if in quotes") =
+    write("NoQuoting", "LeafWith)\"InIt", "NoQuoting") ?=
       """|NoQuoting
-         |"LeafWith)And\"InIt"
+         |"LeafWith)\"InIt"
          |NoQuoting
          |""".stripMargin
 
